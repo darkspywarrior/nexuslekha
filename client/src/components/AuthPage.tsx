@@ -79,7 +79,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         description: "You've successfully logged in.",
       });
 
-      window.location.href = "/";
+      window.location.href = "/ui";
     } catch (error) {
       toast({
         title: "Login failed",
@@ -119,7 +119,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         description: "Welcome to GameMatch!",
       });
 
-      window.location.href = "/";
+      window.location.href = "/ui";
     } catch (error) {
       toast({
         title: "Registration failed",
