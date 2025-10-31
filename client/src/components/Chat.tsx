@@ -5,12 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Phone, PhoneOff, Mic, MicOff, Users } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { queryClient } from "@/lib/queryClient";
-import type { ChatMessageWithSender, VoiceParticipantWithUser } from "@shared/schema";
-import { useVoice } from "@/contexts/VoiceProvider";
+import type { ChatMessageWithSender } from "@shared/schema";
 
 interface ChatProps {
   connectionId: string;
@@ -23,7 +21,6 @@ export function Chat({ connectionId, currentUserId, otherUserId, otherUserName }
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { lastMessage: wsMessage } = useWebSocket();
-  const { state: voiceState, joinChannel, leaveChannel, toggleMute } = useVoice();
 
   // Fetch messages for this connection
   const { data: messages = [], isLoading } = useQuery<ChatMessageWithSender[]>({
@@ -36,20 +33,6 @@ export function Chat({ connectionId, currentUserId, otherUserId, otherUserName }
       return response.json();
     },
     retry: false,
-  });
-
-  // Fetch voice channel participants
-  const { data: voiceChannelData } = useQuery({
-    queryKey: ['/api/voice/channel', connectionId],
-    queryFn: async () => {
-      const response = await fetch(`/api/voice/channel/${connectionId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch voice channel');
-      }
-      return response.json() as Promise<{ channel: any; participants: VoiceParticipantWithUser[] }>;
-    },
-    retry: false,
-    refetchInterval: 5000, // Poll every 5 seconds for updates
   });
 
   // Send message mutation
@@ -79,7 +62,7 @@ export function Chat({ connectionId, currentUserId, otherUserId, otherUserName }
     },
   });
 
-  // Handle WebSocket new message and voice events
+  // Handle WebSocket new message events
   useEffect(() => {
     if (!wsMessage) return;
 
@@ -88,11 +71,6 @@ export function Chat({ connectionId, currentUserId, otherUserId, otherUserName }
     if (type === 'new_message' && data?.connectionId === connectionId) {
       // New message received for this connection
       queryClient.invalidateQueries({ queryKey: ['/api/messages', connectionId] });
-    }
-    
-    if ((type === 'voice_participant_joined' || type === 'voice_participant_left' || type === 'voice_participant_muted') && data?.connectionId === connectionId) {
-      // Voice participant update for this connection
-      queryClient.invalidateQueries({ queryKey: ['/api/voice/channel', connectionId] });
     }
   }, [wsMessage, connectionId]);
 
@@ -115,136 +93,8 @@ export function Chat({ connectionId, currentUserId, otherUserId, otherUserName }
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const isInVoiceChannel = voiceState.isInChannel && voiceState.connectionId === connectionId;
-  const voiceParticipants = voiceChannelData?.participants || [];
-  const participantsOtherThanMe = voiceParticipants.filter(p => p.userId !== currentUserId);
-  const someoneIsWaiting = participantsOtherThanMe.length > 0;
-
   return (
     <div className="flex flex-col h-full">
-      {/* Voice Channel - Persists across navigation */}
-      <div className="border-b p-3 bg-muted/30">
-        {/* Show who's currently in voice channel */}
-        {someoneIsWaiting && !isInVoiceChannel && (
-          <div className="mb-2 p-2 bg-primary/10 border border-primary/30 rounded-md">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">In Voice Channel:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {participantsOtherThanMe.map(participant => (
-                <div key={participant.id} className="flex items-center gap-1 bg-background/50 rounded-full px-2 py-1">
-                  <Avatar className="h-5 w-5">
-                    <AvatarFallback className="text-xs bg-primary/20">
-                      {(participant.gamertag?.[0] || 'U').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs font-medium" data-testid={`voice-participant-${participant.userId}`}>
-                    {participant.gamertag || 'User'}
-                  </span>
-                  {participant.isMuted === 'true' && (
-                    <MicOff className="h-3 w-3 text-muted-foreground" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {!isInVoiceChannel ? (
-          <Button
-            onClick={() => joinChannel(connectionId, otherUserId)}
-            disabled={voiceState.isConnecting}
-            size="sm"
-            variant={someoneIsWaiting ? "default" : "outline"}
-            className="w-full"
-            data-testid="button-join-voice"
-          >
-            {voiceState.isConnecting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Joining...
-              </>
-            ) : someoneIsWaiting ? (
-              <>
-                <Phone className="h-4 w-4 mr-2" />
-                Join Voice Call ({participantsOtherThanMe.length} waiting)
-              </>
-            ) : (
-              <>
-                <Phone className="h-4 w-4 mr-2" />
-                Start Voice Call
-              </>
-            )}
-          </Button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded px-3 py-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                  In Voice Call
-                  {voiceParticipants.length > 1 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      {voiceParticipants.length} participants
-                    </Badge>
-                  )}
-                </span>
-              </div>
-              <Button
-                onClick={toggleMute}
-                size="sm"
-                variant={voiceState.isMuted ? "destructive" : "secondary"}
-                data-testid="button-toggle-mute"
-              >
-                {voiceState.isMuted ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                onClick={leaveChannel}
-                size="sm"
-                variant="destructive"
-                data-testid="button-leave-voice"
-              >
-                <PhoneOff className="h-4 w-4" />
-              </Button>
-            </div>
-            {/* Show all participants in the call */}
-            {voiceParticipants.length > 0 && (
-              <div className="flex flex-wrap gap-2 px-2">
-                {voiceParticipants.map(participant => {
-                  const isMe = participant.userId === currentUserId;
-                  return (
-                    <div 
-                      key={participant.id} 
-                      className={`flex items-center gap-1 rounded-full px-2 py-1 ${
-                        isMe ? 'bg-primary/20' : 'bg-secondary'
-                      }`}
-                      data-testid={`voice-participant-active-${participant.userId}`}
-                    >
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="text-xs">
-                          {(participant.gamertag?.[0] || 'U').toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium">
-                        {isMe ? 'You' : (participant.gamertag || 'User')}
-                      </span>
-                      {participant.isMuted === 'true' && (
-                        <MicOff className="h-3 w-3 text-muted-foreground" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Messages Area */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages-area">
         {isLoading ? (

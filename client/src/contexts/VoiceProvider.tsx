@@ -96,6 +96,11 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 
   // Join voice channel
   const joinChannel = useCallback(async (connectionId: string, otherUserId: string) => {
+    if (!user?.id) {
+      console.error('[Voice] Cannot join channel - user not authenticated');
+      return;
+    }
+
     try {
       setState(prev => ({ ...prev, isConnecting: true }));
 
@@ -133,16 +138,27 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         pc.addTrack(track, stream);
       });
 
-      // Create and send offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      // Deterministic caller selection to prevent "glare" (both users sending offers)
+      // User with lexicographically smaller ID initiates the call
+      const isCaller = user.id < otherUserId;
+      
+      console.log('[Voice] Joined channel. isCaller:', isCaller, 'userId:', user.id, 'otherUserId:', otherUserId);
 
-      sendMessage({
-        type: 'webrtc_offer',
-        targetUserId: otherUserId,
-        connectionId,
-        offer,
-      });
+      if (isCaller) {
+        // Only the designated caller creates and sends the offer
+        console.log('[Voice] This user is the caller - creating and sending offer');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        sendMessage({
+          type: 'webrtc_offer',
+          targetUserId: otherUserId,
+          connectionId,
+          offer,
+        });
+      } else {
+        console.log('[Voice] This user is NOT the caller - waiting for offer from other user');
+      }
 
     } catch (error) {
       console.error('[Voice] Join error:', error);
@@ -152,7 +168,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         isConnecting: false,
       }));
     }
-  }, [createPeerConnection, sendMessage, cleanup]);
+  }, [user, createPeerConnection, sendMessage, cleanup]);
 
   // Leave voice channel
   const leaveChannel = useCallback(async () => {
