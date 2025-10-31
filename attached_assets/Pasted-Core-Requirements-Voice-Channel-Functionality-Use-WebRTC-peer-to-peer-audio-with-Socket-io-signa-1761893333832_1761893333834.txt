@@ -1,0 +1,89 @@
+Core Requirements
+
+Voice Channel Functionality
+
+Use WebRTC (peer-to-peer audio) with Socket.io signaling.
+
+Voice call should work in real time: users can talk and hear each other.
+
+Show a list of all connected participants in the voice call with usernames.
+
+Each user can only join once (prevent duplicates).
+
+Allow scrolling in the participant list when there are many users.
+
+Include a mute/unmute button per user.
+
+When a user joins/leaves, everyone sees the update live.
+
+Optimize WebRTC setup using a TURN/STUN server for reliable connection (especially for NAT users).
+
+Chat + Presence
+
+Chat messages must still work using Socket.io.
+
+Maintain message counters and connection status updates.
+
+Show “online users” and “users in voice channel” separately.
+
+Frontend
+
+Use React (or Vanilla JS) for dynamic updates.
+
+Create a responsive voice panel with:
+
+Active participants list (scrollable).
+
+Buttons: Join Voice, Leave Voice, Mute/Unmute.
+
+Indicators showing who is speaking (e.g., glowing border or pulse animation).
+
+UI should fit the dark neon theme (consistent with the NEXUS splash page).
+
+Backend
+
+Use Express for routing (/ for splash screen, /ui for chat/voice UI).
+
+Implement Socket.io signaling server for WebRTC:
+
+Handle join-voice, offer, answer, and ice-candidate events.
+
+Broadcast connection/disconnection events to all clients in the same voice room.
+
+Ensure the signaling and media peer connections are stable and cleaned up properly on leave/disconnect.
+
+Reliability & Quality
+
+Handle disconnections gracefully (auto-remove users from voice channel list).
+
+Reconnect if network drops (Socket.io auto-reconnect).
+
+Voice should remain clear with minimal latency.
+
+Test on multiple browsers (Chrome, Edge, Firefox).
+
+🧩 Bonus Enhancements
+
+Add visual indicators for who is speaking.
+
+Add volume control per user.
+
+Add connection count and message statistics beside chat.
+
+Use CSS transitions or Framer Motion to animate joining/leaving users in the voice list.
+
+✅ Deliverable
+
+A working web app hosted on Replit that:
+
+Starts with the NEXUS splash screen (already working).
+
+Redirects to /ui for the main app.
+
+Allows multiple users to join a real working voice channel.
+
+Supports scrolling participants list and prevents duplicates.
+
+Keeps chat, message counters, and user presence tracking intact.
+
+Please implement and test it so that voice chat behaves like a real Discord channel, and all other functionalities continue working correctly.
