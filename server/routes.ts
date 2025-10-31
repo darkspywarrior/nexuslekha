@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, getSession } from "./googleAuth";
+import { setupAuth, isAuthenticated, getSession } from "./auth";
 import { devAuthMiddleware, ensureDevUser } from "./devAuth";
 import { insertMatchRequestSchema, registerUserSchema, type RegisterUser } from "@shared/schema";
 import { z } from "zod";
@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await ensureDevUser();
   } else {
     console.log("\n🔐 [PRODUCTION MODE] Authentication is ENABLED");
-    console.log("   Google OAuth is required for all protected routes\n");
+    console.log("   Local authentication is required for all protected routes\n");
     await setupAuth(app);
   }
 
