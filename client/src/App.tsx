@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -49,6 +49,7 @@ function mapUserForComponents(user: User) {
 function Router() {
   // Real authentication using useAuth hook
   const { user, isLoading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   // ALL hooks must be called before any early returns
   const [currentPage, setCurrentPage] = useState<
@@ -334,6 +335,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Splash} />
+      <Route path="/auth">
+        {() => <AuthPage onAuthSuccess={handleAuthSuccess} />}
+      </Route>
       <Route path="/ui">
         {() => {
           if (!isAuthenticated) {
@@ -351,7 +355,7 @@ function Router() {
                   }}
                   user={mapUserForComponents(user)}
                   onLogout={handleLogout}
-                  pendingMessages={unreadMessagesCount || 0}
+                  pendingMessages={0}
                 />
               )}
               {renderMainContent()}

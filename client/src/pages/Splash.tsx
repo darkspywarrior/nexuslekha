@@ -5,6 +5,19 @@ export default function Splash() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    let clicked = false;
+    
+    const handleClick = () => {
+      if (!clicked) {
+        clicked = true;
+        setTimeout(() => {
+          setLocation('/auth');
+        }, 300);
+      }
+    };
+    
+    document.body.addEventListener('click', handleClick);
+
     const script = document.createElement('script');
     script.type = 'module';
     script.textContent = `
@@ -22,35 +35,29 @@ export default function Splash() {
           }
         });
 
-        let clicked = false;
-        document.body.addEventListener('click', () => {
-          if (!clicked) {
-            clicked = true;
-            const colors = randomColors(3);
-            const lightsColors = randomColors(4);
-            app.tubes.setColors(colors);
-            app.tubes.setLightsColors(lightsColors);
-            setTimeout(() => {
-              window.location.href = '/ui';
-            }, 300);
-          }
-        });
-
         function randomColors(count) {
           return new Array(count)
             .fill(0)
             .map(() => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
         }
+        
+        document.body.addEventListener('click', () => {
+          const colors = randomColors(3);
+          const lightsColors = randomColors(4);
+          app.tubes.setColors(colors);
+          app.tubes.setLightsColors(lightsColors);
+        }, { once: true });
       }
     `;
     document.body.appendChild(script);
 
     const autoRedirect = setTimeout(() => {
-      setLocation('/ui');
+      setLocation('/auth');
     }, 3000);
 
     return () => {
       clearTimeout(autoRedirect);
+      document.body.removeEventListener('click', handleClick);
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
