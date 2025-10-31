@@ -750,12 +750,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedUser = await storage.updateUserProfile(userId, { profileImageUrl: fileUrl });
       
-      (app as any).broadcast?.toUser(userId, {
-        type: 'profile_updated',
-        data: updatedUser,
-        message: 'Profile image updated'
-      });
-      
       res.json({ url: fileUrl, user: updatedUser });
     } catch (error: any) {
       console.error('Error uploading profile image:', error);
