@@ -10,6 +10,10 @@ import { useState, useEffect } from "react";
 // Hooks
 import { useAuth } from "@/hooks/useAuth";
 
+// Pages
+import Splash from "@/pages/Splash";
+import NotFound from "@/pages/not-found";
+
 // Components
 import { AuthPage } from "@/components/AuthPage";
 import { GameNavigation } from "@/components/GameNavigation";
@@ -21,7 +25,6 @@ import { Connections } from "@/components/Connections";
 import { Messages } from "@/components/Messages";
 import { Discover } from "@/components/Discover";
 import { Settings } from "@/components/Settings";
-import NotFound from "@/pages/not-found";
 
 // Types
 import type { User } from "@shared/schema";
@@ -71,7 +74,7 @@ function Router() {
   }
 
   const handleAuthSuccess = () => {
-    window.location.href = '/';
+    window.location.href = '/ui';
   };
 
   const handleLogout = () => {
@@ -311,31 +314,32 @@ function Router() {
 
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <Route path="/" component={() => <AuthPage onAuthSuccess={handleAuthSuccess} />} />
-      ) : (
-        <>
-          <Route path="/">
-            {() => (
-              <div className="min-h-screen bg-background">
-                {user && user.gamertag && (
-                  <GameNavigation
-                    currentPage={currentPage}
-                    onNavigate={(page) => {
-                      setCurrentPage(page as any);
-                      setShowCreateForm(false);
-                    }}
-                    user={mapUserForComponents(user)}
-                    onLogout={handleLogout}
-                    pendingMessages={3}
-                  />
-                )}
-                {renderMainContent()}
-              </div>
-            )}
-          </Route>
-        </>
-      )}
+      <Route path="/" component={Splash} />
+      <Route path="/ui">
+        {() => {
+          if (!isAuthenticated) {
+            return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+          }
+          
+          return (
+            <div className="min-h-screen bg-background">
+              {user && user.gamertag && (
+                <GameNavigation
+                  currentPage={currentPage}
+                  onNavigate={(page) => {
+                    setCurrentPage(page as any);
+                    setShowCreateForm(false);
+                  }}
+                  user={mapUserForComponents(user)}
+                  onLogout={handleLogout}
+                  pendingMessages={3}
+                />
+              )}
+              {renderMainContent()}
+            </div>
+          );
+        }}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
