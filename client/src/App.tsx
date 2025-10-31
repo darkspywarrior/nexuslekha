@@ -25,6 +25,7 @@ import { Connections } from "@/components/Connections";
 import { Messages } from "@/components/Messages";
 import { Discover } from "@/components/Discover";
 import { Settings } from "@/components/Settings";
+import { VoiceChannelNotification } from "@/components/VoiceChannelNotification";
 
 // Types
 import type { User } from "@shared/schema";
@@ -346,6 +347,7 @@ function Router() {
 
           return (
             <div className="min-h-screen bg-background">
+              <VoiceChannelNotification />
               {user && user.gamertag && (
                 <GameNavigation
                   currentPage={currentPage}

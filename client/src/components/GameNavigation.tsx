@@ -44,7 +44,7 @@ export function GameNavigation({
     { id: "home", label: "Feed", icon: Home },
     { id: "search", label: "Discover", icon: Search },
     { id: "connections", label: "Matches", icon: Users },
-    { id: "messages", label: "Messages", icon: MessageCircle, badge: pendingMessages },
+    { id: "messages", label: "Messages", icon: MessageCircle },
     { id: "profile", label: "Profile", icon: User },
   ];
 
