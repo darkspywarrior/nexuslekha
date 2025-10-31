@@ -332,7 +332,7 @@ function Router() {
                   }}
                   user={mapUserForComponents(user)}
                   onLogout={handleLogout}
-                  pendingMessages={3}
+                  pendingMessages={unreadMessagesCount || 0}
                 />
               )}
               {renderMainContent()}
