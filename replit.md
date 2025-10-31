@@ -6,6 +6,12 @@ GameMatch is a social gaming web application designed for real-time matchmaking 
 
 ## Recent Changes
 
+### October 31, 2025
+- **Voice Feature Consolidation**: Removed redundant voice controls from the Chat tab to eliminate confusion. The Voice tab is now the single, clear entry point for all voice communication features.
+- **Discord-Style Voice Lobby**: Added a Discord-inspired lobby view in the Voice tab that shows participants waiting in the voice channel with their status (muted/live), making it easier to see who's available.
+- **VoiceProvider Refactor**: Rewrote VoiceChannel component to use the centralized VoiceProvider context instead of local state, improving maintainability and preventing WebRTC "glare" issues where both users simultaneously send offers.
+- **Deterministic Caller Selection**: Implemented caller arbitration using userId comparison to ensure only one user initiates the WebRTC offer, preventing call setup failures.
+
 ### October 30, 2025
 - **Connections/Messages Sorting**: Modified Connections and Messages tabs to prioritize accepted connections at the top, with pending requests appearing below in collapsible sections for better UX.
 - **LFO Bug Fix**: Fixed issue where LFO (Looking for Opponents) match requests were appearing in the LFG tab by requiring `matchType` and `duration` fields in the schema validation, preventing database defaults from overriding user selections.
