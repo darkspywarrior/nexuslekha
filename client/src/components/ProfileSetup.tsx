@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, MapPin, User as UserIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { X, Plus, MapPin, User as UserIcon, Camera, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
@@ -38,6 +39,10 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
     user?.latitude && user?.longitude ? { latitude: user.latitude, longitude: user.longitude } : null
   );
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
+  const [profileImage, setProfileImage] = useState<string | null>(user?.profileImageUrl || null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -74,7 +79,7 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
   });
 
   const profileMutation = useMutation({
-    mutationFn: async (data: FormData & { preferredGames: string[] }) => {
+    mutationFn: async (data: FormData & { preferredGames: string[]; profileImageUrl?: string | null }) => {
       // Transform form data for API
       const apiData = {
         ...data,
@@ -82,6 +87,7 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
         preferredGames: data.preferredGames,
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
+        profileImageUrl: data.profileImageUrl,
       };
       const response = await apiRequest("PATCH", "/api/user/profile", apiData);
       return response.json();
@@ -126,10 +132,74 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
     }
   };
 
-  const onSubmit = (data: FormData) => {
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Profile image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      setProfileImageFile(file);
+    }
+  };
+
+  const uploadProfileImage = async (): Promise<string | null> => {
+    if (!profileImageFile) return null;
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', profileImageFile);
+
+      const response = await fetch('/api/upload-profile-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Image upload failed",
+        description: "Failed to upload profile image. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const onSubmit = async (data: FormData) => {
+    let imageUrl = user?.profileImageUrl || null;
+
+    if (profileImageFile) {
+      const uploadedUrl = await uploadProfileImage();
+      if (!uploadedUrl) {
+        return;
+      }
+      imageUrl = uploadedUrl;
+    }
+
     profileMutation.mutate({
       ...data,
       preferredGames: selectedGames,
+      profileImageUrl: imageUrl,
     });
   };
 
@@ -145,6 +215,40 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Profile Image Upload */}
+          <div className="flex flex-col items-center gap-4 pb-6 border-b">
+            <div className="relative">
+              <Avatar className="h-32 w-32 border-4 border-primary/20">
+                <AvatarImage src={profileImage || undefined} alt="Profile" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-4xl">
+                  {user?.gamertag ? user.gamertag.slice(0, 2).toUpperCase() : <UserIcon className="h-12 w-12" />}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute bottom-0 right-0 rounded-full h-10 w-10 shadow-lg"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="button-upload-profile-image"
+              >
+                <Camera className="h-5 w-5" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+                data-testid="input-profile-image"
+              />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium">Profile Picture</p>
+              <p className="text-xs text-muted-foreground">Click the camera icon to upload (max 5MB)</p>
+            </div>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Gamertag */}
@@ -354,11 +458,11 @@ export function ProfileSetup({ user, onComplete, onCancel }: ProfileSetupProps) 
               <div className="flex gap-3 pt-6">
                 <Button 
                   type="submit" 
-                  disabled={profileMutation.isPending}
+                  disabled={profileMutation.isPending || isUploadingImage}
                   className="flex-1"
                   data-testid="button-save-profile"
                 >
-                  {profileMutation.isPending ? "Saving..." : "Save Profile"}
+                  {isUploadingImage ? "Uploading Image..." : profileMutation.isPending ? "Saving..." : "Save Profile"}
                 </Button>
                 {onCancel && (
                   <Button 
