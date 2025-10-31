@@ -40,7 +40,14 @@ export function GameNavigation({
 }: GameNavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navigationItems = [
+  type NavItem = {
+    id: string;
+    label: string;
+    icon: any;
+    badge?: number;
+  };
+
+  const navigationItems: NavItem[] = [
     { id: "home", label: "Feed", icon: Home },
     { id: "search", label: "Discover", icon: Search },
     { id: "connections", label: "Matches", icon: Users },
@@ -48,7 +55,7 @@ export function GameNavigation({
     { id: "profile", label: "Profile", icon: User },
   ];
 
-  const NavItem = ({ item, isMobile = false }: { item: typeof navigationItems[0], isMobile?: boolean }) => {
+  const NavItem = ({ item, isMobile = false }: { item: NavItem, isMobile?: boolean }) => {
     const isActive = currentPage === item.id;
     const Icon = item.icon;
     
