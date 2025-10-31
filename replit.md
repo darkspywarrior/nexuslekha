@@ -6,11 +6,18 @@ GameMatch is a social gaming web application designed for real-time matchmaking 
 
 ## Recent Changes
 
-### October 31, 2025
+### October 31, 2025 (Latest)
+- **Multi-User Voice Channel Implementation**: Completely rewrote voice system to support Discord-style multi-user voice channels using WebRTC with Selective Forwarding Unit (SFU) architecture via mediasoup.
+- **Mediasoup Integration**: Integrated mediasoup library for server-side SFU media routing, enabling efficient multi-user audio streaming without bandwidth multiplication issues.
+- **Voice Database Schema Updates**: Added `voiceParticipants` table with sessionId tracking, converted isMuted to boolean type, added lastSeenAt timestamps for presence tracking.
+- **WebSocket Signaling System**: Implemented comprehensive signaling handlers for SFU operations including join/leave channel, create/connect transport, produce/consume audio streams, and mute/unmute events.
+- **VoiceProvider SFU Refactor**: Refactored VoiceProvider to use mediasoup-client Device with separate send/receive transports, enabling dynamic multi-user audio consumption.
+- **Fixed Async Flow**: Resolved critical WebSocket response handling by implementing pendingOperationsRef pattern to properly resolve async operations and prevent race conditions.
+- **Real-time Participant Events**: Backend now broadcasts join/leave/mute notifications to all participants in voice channels for live status updates.
+
+### October 31, 2025 (Earlier)
 - **Voice Feature Consolidation**: Removed redundant voice controls from the Chat tab to eliminate confusion. The Voice tab is now the single, clear entry point for all voice communication features.
 - **Discord-Style Voice Lobby**: Added a Discord-inspired lobby view in the Voice tab that shows participants waiting in the voice channel with their status (muted/live), making it easier to see who's available.
-- **VoiceProvider Refactor**: Rewrote VoiceChannel component to use the centralized VoiceProvider context instead of local state, improving maintainability and preventing WebRTC "glare" issues where both users simultaneously send offers.
-- **Deterministic Caller Selection**: Implemented caller arbitration using userId comparison to ensure only one user initiates the WebRTC offer, preventing call setup failures.
 
 ### October 30, 2025
 - **Connections/Messages Sorting**: Modified Connections and Messages tabs to prioritize accepted connections at the top, with pending requests appearing below in collapsible sections for better UX.
