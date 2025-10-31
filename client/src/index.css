@@ -132,13 +132,13 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 15% 8%;
+  --background: 0 0% 0%;
 
   --foreground: 0 0% 95%;
 
   --border: 220 12% 18%;
 
-  --card: 220 12% 12%;
+  --card: 0 0% 5%;
 
   --card-foreground: 0 0% 95%;
 

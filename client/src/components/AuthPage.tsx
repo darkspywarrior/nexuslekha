@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Gamepad2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RegisterUser } from "@shared/schema";
+import { StarryBackground } from "./StarryBackground";
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -15,34 +16,6 @@ interface AuthPageProps {
 export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `
-      import TubesCursor from "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js";
-
-      const canvas = document.getElementById('auth-tubes-canvas');
-      if (canvas) {
-        const app = TubesCursor(canvas, {
-          tubes: {
-            colors: ["#f967fb", "#53bc28", "#6958d5"],
-            lights: {
-              intensity: 200,
-              colors: ["#83f36e", "#fe8a2e", "#ff008a", "#60aed5"]
-            }
-          }
-        });
-      }
-    `;
-    document.body.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
 
   const [loginData, setLoginData] = useState({
     gamertag: "",
@@ -133,8 +106,8 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      <canvas id="auth-tubes-canvas" className="fixed inset-0 w-full h-full -z-10" />
-      <div className="w-full max-w-md z-10">
+      <StarryBackground />
+      <div className="w-full max-w-md z-10 relative">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
