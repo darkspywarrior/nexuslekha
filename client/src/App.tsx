@@ -355,7 +355,6 @@ function Router() {
                   }}
                   user={mapUserForComponents(user)}
                   onLogout={handleLogout}
-                  pendingMessages={0}
                 />
               )}
               {renderMainContent()}
