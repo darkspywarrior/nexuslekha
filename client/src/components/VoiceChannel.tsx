@@ -77,7 +77,7 @@ export function VoiceChannel({ connectionId, currentUserId, otherUserId, otherUs
               <div className="space-y-2 bg-muted/30 rounded-lg p-3">
                 {voiceParticipants.map(participant => {
                   const isMe = participant.userId === currentUserId;
-                  const isMuted = participant.isMuted === 'true';
+                  const isMuted = participant.isMuted;
                   return (
                     <div 
                       key={participant.id} 
@@ -137,7 +137,7 @@ export function VoiceChannel({ connectionId, currentUserId, otherUserId, otherUs
           {/* Join/Leave Controls */}
           {!isInVoiceChannel ? (
             <Button
-              onClick={() => joinChannel(connectionId, otherUserId)}
+              onClick={() => joinChannel(connectionId)}
               disabled={voiceState.isConnecting}
               size="lg"
               className="w-full"

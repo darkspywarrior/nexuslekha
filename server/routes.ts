@@ -12,6 +12,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import fs from "fs";
+import { mediasoupService } from "./mediasoupService";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1537,6 +1538,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: 'error', 
               message: 'Failed to verify authorization' 
             }));
+          }
+        } else if (data.type === 'voice:join') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId } = data;
+          try {
+            const router = await mediasoupService.createRoom(connectionId);
+            const rtpCapabilities = mediasoupService.getRouterRtpCapabilities(connectionId);
+
+            await storage.getOrCreateVoiceChannel(connectionId);
+            await storage.joinVoiceChannel(connectionId, client.userId);
+
+            const participants = await storage.getVoiceParticipants(connectionId);
+
+            const participantList = participants.map(p => ({
+              userId: p.userId,
+              gamertag: p.gamertag,
+              profileImageUrl: p.profileImageUrl,
+              isMuted: p.isMuted,
+            }));
+
+            ws.send(JSON.stringify({
+              type: 'voice:joined',
+              rtpCapabilities,
+              participants: participantList,
+            }));
+
+            broadcastToUsers(
+              participants.filter(p => p.userId !== client.userId).map(p => p.userId),
+              {
+                type: 'voice:participant_joined',
+                connectionId,
+                userId: client.userId,
+                gamertag: await storage.getUser(client.userId).then(u => u?.gamertag),
+                profileImageUrl: await storage.getUser(client.userId).then(u => u?.profileImageUrl),
+              }
+            );
+          } catch (error) {
+            console.error('Error joining voice channel:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to join voice channel' }));
+          }
+        } else if (data.type === 'voice:createTransport') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId, transportType, rtpCapabilities } = data;
+          try {
+            const result = await mediasoupService.createWebRtcTransport(
+              connectionId,
+              client.userId,
+              transportType,
+              rtpCapabilities
+            );
+
+            if (result) {
+              ws.send(JSON.stringify({
+                type: 'voice:transportCreated',
+                params: result.params,
+              }));
+            } else {
+              ws.send(JSON.stringify({ type: 'error', message: 'Failed to create transport' }));
+            }
+          } catch (error) {
+            console.error('Error creating transport:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to create transport' }));
+          }
+        } else if (data.type === 'voice:connectTransport') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId, transportId, dtlsParameters } = data;
+          try {
+            const success = await mediasoupService.connectTransport(
+              connectionId,
+              client.userId,
+              transportId,
+              dtlsParameters
+            );
+
+            if (success) {
+              ws.send(JSON.stringify({ type: 'voice:transportConnected' }));
+            } else {
+              ws.send(JSON.stringify({ type: 'error', message: 'Failed to connect transport' }));
+            }
+          } catch (error) {
+            console.error('Error connecting transport:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to connect transport' }));
+          }
+        } else if (data.type === 'voice:produce') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId, transportId, kind, rtpParameters } = data;
+          try {
+            const producerId = await mediasoupService.produce(
+              connectionId,
+              client.userId,
+              transportId,
+              kind,
+              rtpParameters
+            );
+
+            if (producerId) {
+              ws.send(JSON.stringify({
+                type: 'voice:produced',
+                producerId,
+              }));
+
+              const participants = await storage.getVoiceParticipants(connectionId);
+              broadcastToUsers(
+                participants.filter(p => p.userId !== client.userId).map(p => p.userId),
+                {
+                  type: 'voice:newProducer',
+                  connectionId,
+                  userId: client.userId,
+                  producerId,
+                }
+              );
+            } else {
+              ws.send(JSON.stringify({ type: 'error', message: 'Failed to produce' }));
+            }
+          } catch (error) {
+            console.error('Error producing:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to produce' }));
+          }
+        } else if (data.type === 'voice:consume') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId, transportId, producerId, rtpCapabilities } = data;
+          try {
+            const consumer = await mediasoupService.consume(
+              connectionId,
+              client.userId,
+              transportId,
+              producerId,
+              rtpCapabilities
+            );
+
+            if (consumer) {
+              ws.send(JSON.stringify({
+                type: 'voice:consumed',
+                consumer,
+              }));
+            } else {
+              ws.send(JSON.stringify({ type: 'error', message: 'Failed to consume' }));
+            }
+          } catch (error) {
+            console.error('Error consuming:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to consume' }));
+          }
+        } else if (data.type === 'voice:getProducers') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId } = data;
+          try {
+            const producers = mediasoupService.getProducersForRoom(connectionId, client.userId);
+            ws.send(JSON.stringify({
+              type: 'voice:producers',
+              producers,
+            }));
+          } catch (error) {
+            console.error('Error getting producers:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to get producers' }));
+          }
+        } else if (data.type === 'voice:leave') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId } = data;
+          try {
+            mediasoupService.removePeer(connectionId, client.userId);
+            await storage.leaveVoiceChannel(connectionId, client.userId);
+
+            ws.send(JSON.stringify({ type: 'voice:left' }));
+
+            const participants = await storage.getVoiceParticipants(connectionId);
+            broadcastToUsers(
+              participants.map(p => p.userId),
+              {
+                type: 'voice:participant_left',
+                connectionId,
+                userId: client.userId,
+              }
+            );
+          } catch (error) {
+            console.error('Error leaving voice channel:', error);
+            ws.send(JSON.stringify({ type: 'error', message: 'Failed to leave voice channel' }));
+          }
+        } else if (data.type === 'voice:mute' || data.type === 'voice:unmute') {
+          if (!client?.userId) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+            return;
+          }
+
+          const { connectionId } = data;
+          const isMuted = data.type === 'voice:mute';
+          try {
+            await storage.updateParticipantMuteStatus(connectionId, client.userId, isMuted);
+
+            const participants = await storage.getVoiceParticipants(connectionId);
+            broadcastToUsers(
+              participants.filter(p => p.userId !== client.userId).map(p => p.userId),
+              {
+                type: 'voice:participant_muted',
+                connectionId,
+                userId: client.userId,
+                isMuted,
+              }
+            );
+          } catch (error) {
+            console.error('Error updating mute status:', error);
           }
         }
       } catch (error) {

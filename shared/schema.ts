@@ -205,7 +205,9 @@ export const voiceParticipants = pgTable("voice_participants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   voiceChannelId: varchar("voice_channel_id").notNull().references(() => voiceChannels.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  isMuted: varchar("is_muted").default("false"),
+  isMuted: boolean("is_muted").default(false),
+  sessionId: varchar("session_id"), // Mediasoup session/transport ID for SFU
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
   joinedAt: timestamp("joined_at").defaultNow(),
 }, (table) => [
   index("idx_voice_channel_participants").on(table.voiceChannelId),
